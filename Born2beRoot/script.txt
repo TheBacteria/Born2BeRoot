@@ -1,0 +1,55 @@
+#!/bin/bash
+
+# Architecture and kernel version
+arch_and_kernel=$(uname -a)
+
+# Number of physical processors
+physical_cpus=$(lscpu | grep "Socket(s)" | awk '{print $2}')
+
+# Number of virtual processors
+virtual_cpus=$(lscpu | grep "^CPU(s)" | awk '{print $2}')
+
+# RAM usage
+total_mem=$(free --mega | grep "Mem:" | awk '{printf "%d", $2}')
+used_mem=$(free --mega | grep "Mem:" | awk '{printf "%d", $3}')
+ram_utilization=$(free --mega | grep "Mem:" | awk '{printf "%.2f%%", ($3 * 100) / $2}')
+
+# Disk usage
+used_disk=$(df -h --total | grep total | awk '{printf "%.1f\n", $3}')
+total_disk=$(df -h --total | grep total | awk '{print$2}')
+disk_utilization=$(df -h --total | grep total | awk '{print$5}')
+
+# Processors usage
+cpu_utilization=$(mpstat 1 1 | grep "Average" | awk '{printf("%.1f%%", 100 - $12)}');
+
+# Date and time of the last reboot
+last_reboot=$(who -b | awk '{print$3" "$4}')
+
+# LVM status
+lvm_stat=$(if [ $(lsblk | grep lvm | wc -l) -eq 0 ]; then echo "no"; else echo "yes"; fi)
+
+# Number of active connections
+tcp_count=$(netstat -t | grep ESTABLISHED | wc -l)
+
+# Number of active users
+users_count=$(who | wc -l)
+
+# IPv4 and MAC address
+ip=$(hostname -I)
+mac=$(ip link | grep ether | awk '{print $2}')
+
+# Number of commands executed with the sudo program
+sudo_count=$(journalctl | grep "sudo" | grep "COMMAND" | wc -l)
+
+wall "#Architecture: $arch_and_kernel
+#CPU physical: $physical_cpus
+#vCPU: $virtual_cpus
+#Memory Usage: $used_mem/${total_mem}MB ($ram_utilization)
+#Disk Usage: $used_disk/${total_disk}Gb ($disk_utilization)
+#CPU load: $cpu_utilization
+#Last boot: $last_reboot
+#LVM use: $lvm_stat
+#Connections TCP: $tcp_count ESTABLISHED
+#User log: $users_count
+#Network: IP $ip ($mac)
+#Sudo: $sudo_count cmd"
